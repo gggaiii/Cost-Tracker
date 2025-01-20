@@ -23,6 +23,7 @@ def setup_database():
             amount REAL NOT NULL,
             pay_to TEXT NOT NULL,
             description TEXT,
+            category TEXT DEFAULT 'Others',
             payment_method TEXT DEFAULT 'HSBC UK'
         )
     ''')
@@ -36,16 +37,20 @@ def setup_database():
 
 # Function to add an expense to the database
 def add_expense():
+    print("Adding an expense...")  # Debug print
     date = f"{selected_year.get()}-{selected_month.get():02d}-{selected_day.get():02d}"
     currency = currency_var.get()
     amount = entry_amount.get()
     pay_to = entry_pay_to.get()
     description = entry_description.get()
+    category = category_var.get()
     payment_method = payment_method_var.get()
+    print(f"Date: {date}, Currency: {currency}, Amount: {amount}, Pay To: {pay_to}, Description: {description}, Category: {category}, Payment Method: {payment_method}")  # Debug output
+
     conn = create_connection()
     cursor = conn.cursor()
-    query = 'INSERT INTO expenses (date, currency, amount, pay_to, description, payment_method) VALUES (?, ?, ?, ?, ?, ?)'
-    cursor.execute(query, (date, currency, amount, pay_to, description, payment_method))
+    query = 'INSERT INTO expenses (date, currency, amount, pay_to, description, category, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    cursor.execute(query, (date, currency, amount, pay_to, description, category, payment_method))
     conn.commit()
     conn.close()
     view_expenses()  # Refresh list after adding
@@ -53,6 +58,7 @@ def add_expense():
     entry_amount.delete(0, tk.END)
     entry_pay_to.delete(0, tk.END)
     entry_description.delete(0, tk.END)
+
 
 # Function to view all expenses from the database
 sort_order = "DESC"
@@ -66,15 +72,15 @@ def view_expenses():
     conn = create_connection()
     cursor = conn.cursor()
     query = f'''
-        SELECT date, currency, amount, pay_to, description, payment_method 
+        SELECT date, currency, amount, pay_to, description, category, payment_method 
         FROM expenses 
         ORDER BY date {sort_order}, currency
     '''
     cursor.execute(query)
     last_date = ""
     for row in cursor.fetchall():
-        date_display = row[0] if row[0] != last_date else "----"
-        expenses_list.insert(tk.END, f"{date_display} - {row[1]} - £{row[2]} - {row[3]} - {row[4]} - {row[5]}")
+        date_display = row[0] if row[0] != last_date else "-------------"
+        expenses_list.insert(tk.END, f"{date_display} - {row[1]} - £{row[2]} - {row[3]} - {row[4]} - {row[5]} - {row[6]}")
         last_date = row[0]
     conn.close()
 
@@ -85,18 +91,19 @@ def search_expenses():
     conn = create_connection()
     cursor = conn.cursor()
     query = f'''
-        SELECT date, currency, amount, pay_to, description, payment_method
+        SELECT date, currency, amount, pay_to, description, category, payment_method
         FROM expenses
         WHERE date LIKE '%' || ? || '%' OR
               amount LIKE '%' || ? || '%' OR
               pay_to LIKE '%' || ? || '%' OR
               description LIKE '%' || ? || '%' OR
+              category LIKE '%' || ? || '%' OR
               payment_method LIKE '%' || ? || '%'
         ORDER BY date DESC
     '''
-    cursor.execute(query, (search_query, search_query, search_query, search_query, search_query))
+    cursor.execute(query, (search_query, search_query, search_query, search_query, search_query, search_query))
     for row in cursor.fetchall():
-        expenses_list.insert(tk.END, f"{row[0]} - {row[1]} - £{row[2]} - {row[3]} - {row[4]} - {row[5]}")
+        expenses_list.insert(tk.END, f"{row[0]} - {row[1]} - £{row[2]} - {row[3]} - {row[4]} - {row[5]} - {row[6]}")
     conn.close()
 
 # Setting up the main window
@@ -146,13 +153,21 @@ label_description.grid(row=3, column=0)
 entry_description = ttk.Entry(root)
 entry_description.grid(row=3, column=1, columnspan=3)
 
+# Category dropdown
+categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Study', 'travel', 'Others']
+category_var = tk.StringVar(value=categories[6])
+label_category = ttk.Label(root, text="Category:")
+label_category.grid(row=4, column=0)
+category_menu = ttk.Combobox(root, textvariable=category_var, values=categories, state="readonly")
+category_menu.grid(row=4, column=0, columnspan=3)
+
 # Payment method dropdown
 payment_methods = ['cash', 'HSBC UK', 'HSBC Global', 'Barclay', 'Bank of China', 'China Merchant Bank']
 payment_method_var = tk.StringVar(value=payment_methods[1])
-label_payment_method = ttk.Label(root, text="Payment Method:")
-label_payment_method.grid(row=4, column=0)
+label_payment_method = ttk.Label(root, text="Payment:")
+label_payment_method.grid(row=4, column=2)
 payment_method_menu = ttk.Combobox(root, textvariable=payment_method_var, values=payment_methods, state="readonly")
-payment_method_menu.grid(row=4, column=1, columnspan=3)
+payment_method_menu.grid(row=4, column=3, columnspan=3)
 
 button_add = ttk.Button(root, text="Add Expense", command=add_expense)
 button_add.grid(row=5, column=1)
