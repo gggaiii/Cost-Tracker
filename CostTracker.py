@@ -7,7 +7,7 @@ import os
 # Database setup and connection
 def create_connection():
     # Define a fixed path for the database
-    db_path = os.path.join('C:\\GitHub\\CostLog', 'expenses.db')
+    db_path = os.path.join('C:\\Database\\databases', 'expenses.db')  # Change the path to your own path
     conn = sqlite3.connect(db_path)
     return conn
 
